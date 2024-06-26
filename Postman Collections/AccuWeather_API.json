@@ -1,0 +1,293 @@
+{
+	"info": {
+		"_postman_id": "59a5b38e-da32-4da9-8a36-0129ade94f3e",
+		"name": "AccuWeather API",
+		"description": "Later, the same prospective customer is curious about more advanced Postman use cases. She wants to know how to use Postman to trigger an API request that is dependent on the response of a previous API request. You've decided that the best way to educate her is to just demonstrate it! Create a Postman collection (and environment, if needed) which when executed in the Runner:\n\n- Retrieves the weather for San Francisco, USA\n    \n- Tests to ensure the temperature is in a sensible range\n    \n- If the temperature is over 60F, retrieve the weather for Bangalore, India\n    \n- Else, retrieve the weather for London, UK\n    \n\nYour collection/environment should contain everything needed to run the collection. Do not attach separate instructions for execution, unless they relate to credentials and API security.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Location by City Name",
+			"item": [
+				{
+					"name": "Get Location by City Name",
+					"id": "2b0968e1-ca28-4c37-aee3-d7638005e606",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://dataservice.accuweather.com/locations/v1/cities/search?apikey={{vault:apikey}}&q=London",
+							"protocol": "http",
+							"host": [
+								"dataservice",
+								"accuweather",
+								"com"
+							],
+							"path": [
+								"locations",
+								"v1",
+								"cities",
+								"search"
+							],
+							"query": [
+								{
+									"key": "apikey",
+									"value": "{{vault:apikey}}"
+								},
+								{
+									"key": "q",
+									"value": "London"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "5aed714b-be15-4cda-972d-3657f2d67e46"
+		},
+		{
+			"name": "Get Current Conditions",
+			"item": [
+				{
+					"name": "Current Conditions in SFO",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "8ce617df-1e53-4f67-8e9e-5fa91266695a",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 200ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+									"});",
+									"",
+									"pm.test(\"Temperature for San Francisco is in a good temperature range, between 45 and 70 F\", function () {",
+									"  pm.response.json().forEach(function(observation) {",
+									"    pm.expect(observation.Temperature.Imperial.Value).to.be.within(-100, 0);",
+									"  });",
+									"});",
+									"",
+									"pm.test(\"Determine which next to call based on the temperature in SFO\", function () {",
+									"    pm.response.json().forEach(function(observation) {",
+									"        let currentTemp = observation.Temperature.Imperial.Value;",
+									"",
+									"        pm.test(\"Temperature in San Francisco is \" + currentTemp + \" F\", function () {",
+									"        });",
+									"",
+									"        if (currentTemp > 60) {",
+									"            pm.test(\"Current temperature is > 60F, retrieving temperature for Bangalore\");",
+									"            ",
+									"            pm.execution.setNextRequest(\"Current Conditions in Bangalore\");",
+									"        } else {",
+									"            pm.test(\"Current temperature is <= 60F, retrieving temperature for London\");",
+									"",
+									"",
+									"            pm.execution.setNextRequest(\"Current Conditions in London\");",
+									"        }",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "560dfc04-010e-42af-ab96-110133d061dc",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}{{locationKey}}?apikey={{vault:apikey}}&language={{language}}",
+							"host": [
+								"{{baseUrl}}{{locationKey}}"
+							],
+							"query": [
+								{
+									"key": "apikey",
+									"value": "{{vault:apikey}}"
+								},
+								{
+									"key": "language",
+									"value": "{{language}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Current Conditions in Bangalore",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7a088cc3-4c07-4176-810d-1ac30d05ee0f",
+								"exec": [
+									"// Fixed forEach error by checking if response is an array before iterating",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 200 ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+									"});",
+									"",
+									"var responseData = pm.response.json();",
+									"var currentTemp = 0;",
+									"if(Array.isArray(responseData)) {",
+									"    currentTemp = responseData[0].Temperature.Metric.Value;",
+									"}",
+									"",
+									"pm.test(\"Temperature in Bangalore is \" + currentTemp + \" C\", function () {",
+									"});",
+									"",
+									"pm.execution.setNextRequest(null);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "e7d405f5-12f8-4c98-99a3-437e51fabc9c",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}1-204108_1_AL?apikey={{vault:apikey}}&language={{language}}",
+							"host": [
+								"{{baseUrl}}1-204108_1_AL"
+							],
+							"query": [
+								{
+									"key": "apikey",
+									"value": "{{vault:apikey}}"
+								},
+								{
+									"key": "language",
+									"value": "{{language}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Current Conditions in London",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7a088cc3-4c07-4176-810d-1ac30d05ee0f",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response time is less than 200 ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+									"});",
+									"",
+									"",
+									"var responseData = pm.response.json();",
+									"var currentTemp = 0;",
+									"if(Array.isArray(responseData)) {",
+									"    responseData.forEach(function(observation) {",
+									"        currentTemp = observation.Temperature.Metric.Value;",
+									"    });",
+									"}",
+									"",
+									"pm.test(\"Temperature in London is \" + currentTemp + \" C\", function () {",
+									"});",
+									"",
+									"pm.execution.setNextRequest(null);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "0990d087-9c38-4cb7-9e0b-82b944ecfada",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}328328?apikey={{vault:apikey}}&language={{language}}",
+							"host": [
+								"{{baseUrl}}328328"
+							],
+							"query": [
+								{
+									"key": "apikey",
+									"value": "{{vault:apikey}}"
+								},
+								{
+									"key": "language",
+									"value": "{{language}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "24b90f45-5c2c-4d31-b2b0-baf3d33c9fe4",
+			"description": "## Customer Use Case - Get Current Conditions\n\nLater, the same prospective customer is curious about more advanced Postman use cases. She wants to know how to use Postman to trigger an API request that is dependent on the response of a previous API request. You've decided that the best way to educate her is to just demonstrate it! Create a Postman collection (and environment, if needed) which when executed in the Runner:\n\n1. Retrieves the weather for San Francisco, USA\n    \n2. Tests to ensure the temperature is in a sensible range\n    \n3. If the temperature is over 60F, retrieve the weather for Bangalore, India\n    \n4. Else, retrieve the weather for London, UK\n    \n\nYour collection/environment should contain everything needed to run the collection.\n\n### Current Conditions in SFO\n\nThe request _Get Current Conditions in SFO_ makes an HTTP GET call to to the [AccuWeather Current Conditons API ](http://dataservice.accuweather.com/currentconditions/v1/) endpoint, passing {{locationKey}} set as a collection variable. This variable is set on the requests path (not a param value).\n\nThere are two params set in the request, both are set as Global environment variables.\n\n1. apikey - securely stored in my Postman platforms Vault. Value is secure and not visible within the Global or collection variables. This API key is used to access the Accuweather API endpoint.\n    \n2. language - set as a collection variable. The default value for the API is en-us, but the user can also provide additional ISO languages.\n    \n\nThe request defaults to Accept: application/json as we prefer to parse the JSON tree to post-script the response.\n\n#### Post-script\n\nIn this collections post-script we build serveral tests;\n\n- check HTTP response code, should be 200 (ok)\n    \n- request/response time, value is > 200 ms.\n    \n\nNext, it will interogate the response received using the `observation` as an interable (there's only 1 observation in the response) to retrieve the Imperical (F) temperature and perform a sequence to next steps;\n\n- test if the current temp in SFO is within a stable zone - 45 - 60F. if not, a test error will be recorded along with a message\n    \n- output the current temperate in SFO\n    \n- if current temperate is > 60, set next request to be made as \\*Get Current Conditions in Bangalore\\*.\n    \n- if current temperate is <= 60, set next request to be made as \\*Get Current Conditions in London\\*.\n    \n- Regardless of the next GET request being sent, we will test values in the response.\n    \n    - check HTTP response code, should be 200 (ok)\n        \n    - request/response time, value is > 200 ms.\n        \n    - extract the Metric (c) value of the temperature\n        \n        - test if value exists and output value\n            \n\nOnce sequence concludes, we set the next request to be a null value ceasing any futher exection.\n\n### Setup Runner\n\nWe are going to setup a Runner on a collection so that we can see the execution of chained requests.\n\nYou can see there are three requests in the _Get Current Conditions_ collection. Let's chain them together using a [Collection Runner](https://learning.postman.com/docs/collections/running-collections/intro-to-collection-runs/).\n\n- Select the _Weather API Environment_ at the top right (this will use the Global env variable {{baseUrl}}.\n    \n- Select _Get Current Conditions_ in the collection view. On the right we will see a series of buttons to **Save, Run,** or **Share.** Select **Run.**\n    \n- In this new view, we can set a number of things; including which requests we want to send. Leave everything as is and Select **Run AccuWeather API**.\n    \n- The collection will automatically run and report back the test results.\n    \n- **Note:** you will need an API key to access the AccuWeather API. One can be provided if needed, or you can create a new one using their link [Get Started Now!](https://developer.accuweather.com/accuweather_custom/package/purchase/free/free)\n    \n\n<img src=\"https://content.pstmn.io/da82964f-71a8-40a6-9891-1d2127a2ad8f/aW1hZ2UucG5n\" width=\"468\" height=\"95\">\n\n#### Validate tests"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "6345084d-3661-45b8-8d50-c0fb592d5001",
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "4b78a07a-c37a-4e2e-b606-edcd36c6277d",
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "language",
+			"value": "en-us"
+		},
+		{
+			"key": "locationKey",
+			"value": "347629"
+		}
+	]
+}
